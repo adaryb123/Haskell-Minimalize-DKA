@@ -8,7 +8,6 @@ import Data.Typeable
 import Control.Applicative ((<$>), (<*>), (<*), (<|>))
 import Control.Arrow (left)
 import Control.Monad ((<=<))
--- import Data.List (group, sort)
 import Data.Set (Set, fromList, toList)
 import Text.Parsec (char, count, endBy, eof, many1, newline, oneOf, parse,
     satisfy, sepBy, sepBy1, string, alphaNum)
@@ -58,33 +57,28 @@ ruleParser = Rule
 comma :: Parser Char
 comma = char ','
 
--- parseAnything :: Parser [Char]
--- parseAnything = many1 anySymbol
+subList :: Eq a => [a] -> [a] -> Bool
+subList [] [] = True
+subList _ []    = False
+subList [] _    = True
+subList (x:xs) (y:ys) 
+    | x == y    = subList xs ys   
+    | otherwise = subList (x:xs) ys
 
--- anySymbol :: Parser Char
--- anySymbol = satisfy (`elem` "abcdefghijklmnopqrstuvwxyz 123456790,./';][] \n")
-
-
--- oneInputSymbolParser :: Parser InputSymbol
--- oneInputSymbolParser =  oneOf "abcdefghijklmnopqrstuvwxyz"
-
--- stateSymbols :: [Int]
--- stateSymbols = [0 ..]
-
-
-
+allDifferent :: (Eq a) => [a] -> Bool
+allDifferent list = case list of
+    []      -> True
+    (x:xs)  -> x `notElem` xs && allDifferent xs
 
 validate :: DKA -> Err DKA
 validate dka@DKA{..} =
-  if isValid then Right dka else Left "ERROR"
+  if isValid then Right dka else Left "ERROR: Input file is in invalid format"
   where
-    -- allUnique l = all ((==) 1 . length) $ (group . sort) l
-    isValid = True
-      -- allUnique nonterminals
-      -- && allUnique terminals
-      -- && elem startingSymbol nonterminals
-      -- && allUnique rules
-      -- && all ( \(l, r) ->
-      --   elem l nonterminals
-      --   && all (`elem` nonterminals ++ terminals ++ [epsSymbol]) r
-      -- ) rules
+    isValid = startState `elem` states
+           && subList endStates states
+           && all ((`elem` states) . fromState) transitions
+           && all ((`elem` alphabet) . symbol) transitions
+           && all ((`elem` states) . toState) transitions
+           && allDifferent states
+           && allDifferent endStates
+           && allDifferent alphabet
