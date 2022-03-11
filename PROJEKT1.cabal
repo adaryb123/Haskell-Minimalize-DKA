@@ -25,9 +25,9 @@ source-repository head
 
 library
   exposed-modules:
-      Data
       Main
-      Parser
+      MyData
+      MyParser
   other-modules:
       Paths_PROJEKT1
   hs-source-dirs:
