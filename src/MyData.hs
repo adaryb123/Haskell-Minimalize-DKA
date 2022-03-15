@@ -21,13 +21,14 @@ type Err = Either String
 type DKAState = String
 type InputSymbol = Char
 
-globalDKA = DKA{states = ["1","5","8"]
+globalDKA = DKA{states = ["1","5","8","11", "12"]
 ,   alphabet = ['c','d','e','x']
 ,   startState = "5"
 ,   endStates = ["8"]
 ,   transitions = fromList [Rule{fromState = "5", symbol = 'd', toState = "8"},
                        Rule{fromState = "8", symbol = 'x', toState = "1"},
-                       Rule{fromState = "8", symbol = 'c', toState = "5"}]}
+                       Rule{fromState = "8", symbol = 'c', toState = "5"},
+                       Rule{fromState = "11", symbol = 'c', toState = "12"}]}
 
 getStates :: DKA -> [DKAState]
 getStates (DKA x _ _ _ _) = x
@@ -97,16 +98,17 @@ findReachableStates rules' foundStates'
     | otherwise = findReachableStates rules' (newStates ++ foundStates')
     where newStates = findReachableStatesFromStates rules' foundStates'
 
-ruleExistsByStart :: Set Rule -> DKAState -> InputSymbol -> Bool
-ruleExistsByStart rules' state' symbol' = any (\someRule -> getRuleFromState someRule == state' && getRuleSymbol someRule == symbol') rules'
+
+findUnreachableRules :: Set Rule -> [DKAState] -> [Rule]
+findUnreachableRules rules' unreachableStates' = filter (\someRule -> getRuleFromState someRule `elem` unreachableStates') ( toList rules')
+    -- any (\someRule -> getRuleFromState someRule == state' && getRuleSymbol someRule == symbol') rules'
     
 
-removeReachableStates :: DKA -> DKA
-removeReachabelStates dka@DKA{..} =
-    DKA{states = getStates dka \\ findReachableStates (getRules dka) [getStartingState dka]
+removeUnreachableStates :: DKA -> DKA
+removeUnreachableStates dka@DKA{..} =
+    DKA{states = (getStates dka) \\ unreachableStates
     ,   alphabet = getAlphabet dka
     ,   startState = getStartingState dka
     ,   endStates = getEndingStates dka
-    ,   transitions = newTransitions}
-    where newTransitions = fromList (toList (getRules dka) ++ sinkTransitions ((getStates dka) ++ ["SINK"]) (getAlphabet dka) (getRules dka))
-
+    ,   transitions = fromList ((toList (getRules dka)) \\ (findUnreachableRules (getRules dka) unreachableStates)) }
+    where unreachableStates = getStates dka \\ findReachableStates (getRules dka) [getStartingState dka]
