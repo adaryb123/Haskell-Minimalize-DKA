@@ -4,7 +4,7 @@ module MyData where
 
 import Control.Arrow (first)
 import Control.Monad (join)
-import Data.List (intercalate, dropWhileEnd, unfoldr)
+import Data.List (intercalate, dropWhileEnd, unfoldr, (\\))
 import Data.Set (Set, toList, fromList)
 
 data DKA = DKA {states :: [DKAState],
@@ -24,9 +24,10 @@ type InputSymbol = Char
 globalDKA = DKA{states = ["1","5","8"]
 ,   alphabet = ['c','d','e','x']
 ,   startState = "5"
-,   endStates = ["1"]
+,   endStates = ["8"]
 ,   transitions = fromList [Rule{fromState = "5", symbol = 'd', toState = "8"},
-                       Rule{fromState = "8", symbol = 'x', toState = "1"}]}
+                       Rule{fromState = "8", symbol = 'x', toState = "1"},
+                       Rule{fromState = "8", symbol = 'c', toState = "5"}]}
 
 getStates :: DKA -> [DKAState]
 getStates (DKA x _ _ _ _) = x
@@ -69,9 +70,9 @@ instance Eq Rule where
 addSINKState :: DKA -> DKA
 addSINKState dka@DKA{..} =
     DKA{states = getStates dka ++ ["SINK"]
-    ,   alphabet = ['c','d','e','x']
-    ,   startState = "5"
-    ,   endStates = ["1"]
+    ,   alphabet = getAlphabet dka
+    ,   startState = getStartingState dka
+    ,   endStates = getEndingStates dka
     ,   transitions = newTransitions}
     where newTransitions = fromList (toList (getRules dka) ++ sinkTransitions ((getStates dka) ++ ["SINK"]) (getAlphabet dka) (getRules dka))
 
@@ -86,17 +87,26 @@ sinkTransitions [] _ _ = []
 sinkTransitions (state':states') symbols' rules' = sinkTransitionsForState state' symbols' rules' ++ sinkTransitions states' symbols' rules'
 
 
+findReachableStatesFromStates :: Set Rule -> [DKAState] -> [DKAState]
+findReachableStatesFromStates rules' fromStates' =  map getRuleToState (filter (\someRule -> getRuleFromState someRule `elem` fromStates' && getRuleToState someRule `notElem` fromStates') (toList rules'))
 
+findReachableStates :: Set Rule -> [DKAState] -> [DKAState]
+findReachableStates _ [] = []
+findReachableStates rules' foundStates' 
+    | null newStates = foundStates'
+    | otherwise = findReachableStates rules' (newStates ++ foundStates')
+    where newStates = findReachableStatesFromStates rules' foundStates'
 
+ruleExistsByStart :: Set Rule -> DKAState -> InputSymbol -> Bool
+ruleExistsByStart rules' state' symbol' = any (\someRule -> getRuleFromState someRule == state' && getRuleSymbol someRule == symbol') rules'
+    
 
+removeReachableStates :: DKA -> DKA
+removeReachabelStates dka@DKA{..} =
+    DKA{states = getStates dka \\ findReachableStates (getRules dka) [getStartingState dka]
+    ,   alphabet = getAlphabet dka
+    ,   startState = getStartingState dka
+    ,   endStates = getEndingStates dka
+    ,   transitions = newTransitions}
+    where newTransitions = fromList (toList (getRules dka) ++ sinkTransitions ((getStates dka) ++ ["SINK"]) (getAlphabet dka) (getRules dka))
 
--- ruleExistsByStart :: Set Rule -> [DKAState] -> Bool
--- ruleExistsByStart _ [] = False
--- ruleExistsByStart  rules' (state':states') =  any (\someRule -> getRuleFromState someRule == state') rules' || ruleExistsByStart rules' states'
-
--- findAllToStates :: Set Rule -> [DKAState] -> [DKAStates]
--- findALLToStates rules' found' = 
-
--- findReachableStates :: DKAState -> [DKAStates] -> Set Rule -> [DKAStates]
--- findReachableStates start' [] rules' = [start'] + 
--- findReachableStates start' found' rules' = found' 
