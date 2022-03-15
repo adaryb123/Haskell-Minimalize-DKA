@@ -7,4 +7,4 @@ import MyData
 
 
 convertToMKA :: DKA -> DKA
-convertToMKA dka@DKA{..} = addSINKState dka
+convertToMKA dka@DKA{..} = removeUnreachableStates (addSINKState dka)

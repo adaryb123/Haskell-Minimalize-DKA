@@ -27,4 +27,7 @@ printDKA :: DKA -> IO ()
 printDKA = putStr . show
 
 convertDKA :: DKA -> IO ()
-convertDKA = printDKA . convertToMKA
+convertDKA = printTable . convertDKAtoTable . convertToMKA
+
+printTable :: AlgorithmTable -> IO ()
+printTable = putStr . show

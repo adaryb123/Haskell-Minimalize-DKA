@@ -76,9 +76,9 @@ validate dka@DKA{..} =
   where
     isValid = startState `elem` states
            && subList endStates states
-           && all ((`elem` states) . fromState) transitions
-           && all ((`elem` alphabet) . symbol) transitions
-           && all ((`elem` states) . toState) transitions
+           && all ((`elem` states) . fromState) rules
+           && all ((`elem` alphabet) . symbol) rules
+           && all ((`elem` states) . toState) rules
            && allDifferent states
            && allDifferent endStates
            && allDifferent alphabet
