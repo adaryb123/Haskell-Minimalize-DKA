@@ -27,7 +27,10 @@ printDKA :: DKA -> IO ()
 printDKA = putStr . show
 
 convertDKA :: DKA -> IO ()
-convertDKA = printTable . convertDKAtoTable . convertToMKA
+convertDKA = printTable . modifyTableTransitionsClasses . convertDKAtoTable . convertToMKA
 
 printTable :: AlgorithmTable -> IO ()
 printTable = putStr . show
+
+modifyTableTransitionsClasses :: AlgorithmTable -> AlgorithmTable
+modifyTableTransitionsClasses table' = setTransitionsAccordingToClass table' table'

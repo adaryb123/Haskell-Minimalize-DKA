@@ -146,6 +146,9 @@ getTransitions (TableRow _ _ x) = x
 getTransitionFromState :: Transition -> DKAState
 getTransitionFromState (Transition x _ _ _) = x
 
+getTransitionToState :: Transition -> DKAState
+getTransitionToState (Transition _ x _ _) = x
+
 getTransitionSymbol :: Transition -> InputSymbol
 getTransitionSymbol (Transition _ _ x _) = x
 
@@ -190,3 +193,22 @@ convertRuleToTransition rule@Rule{..} =
                tToState = getRuleToState rule,
                tSymbol = getRuleSymbol rule,
                toClass = "0"}
+
+
+setTransitionsAccordingToClass :: [TableRow]  -> [TableRow] -> [TableRow]
+setTransitionsAccordingToClass [] _ = []
+setTransitionsAccordingToClass (row':rows') table' = [setTransitions row' table'] ++ setTransitionsAccordingToClass rows' table'
+
+getTableRowClass :: [TableRow] -> DKAState -> String
+getTableRowClass [] _ = "No class found"
+getTableRowClass (row':rows') state' 
+    | getState row' == state' = getClass row'
+    | otherwise = getTableRowClass rows' state' 
+
+setTransitions :: TableRow -> AlgorithmTable -> TableRow
+setTransitions row' table' = row'{transitions = changedTransitions}
+    where changedTransitions = map helper (getTransitions row')
+          helper x = setClass x (getTableRowClass table' (getTransitionToState x))
+
+setClass :: Transition -> String -> Transition
+setClass transition' class' = transition'{toClass = class'}
