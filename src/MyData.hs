@@ -55,13 +55,13 @@ getRuleToState (Rule _ _ x) = x
 
 --printing functions
 instance Show DKA where
-    show DKA{..} = unwords $ [intercalate "," states ++ "\n" ++ alphabet ++ "\n" ++ startState ++ "\n" ++ intercalate "," endStates] ++ map show (toList rules)
+    show DKA{..} = unwords $ (intercalate "," states ++ "\n" ++ alphabet ++ "\n" ++ startState ++ "\n" ++ intercalate "," endStates) : map show (toList rules)
     --show DKA{..} = unwords $ ["Printing DKA:\nStates: " ++ intercalate "," states ++ "\nAlphabet: " ++ alphabet ++ "\nStarting state: " ++ startState ++ "\nEnding states: " ++ intercalate "," endStates ++"\nRules:\n"] ++ map show (toList rules)
- 
+
 instance Show Rule where
     show Rule{..} = "\n" ++ fromState ++ "," ++ [symbol] ++ "," ++ toState
     -- show Rule{..} = fromState ++ "--" ++ show symbol ++ "-> " ++ toState ++ "\n"
-     
+
 -- comparing function
 instance Eq Rule where
         (Rule x1 y1 z1) == (Rule x2 y2 z2) = x1 == x2 && y1 == y2 && z1 == z2
@@ -112,8 +112,8 @@ getTransitionToClass (Transition _ _ _ x) = x
 
 -- printing functions
 instance Show TableRow where
-    show TableRow{..} = unwords $ ["\nClass: " ++ tableClass ++ ", State: " ++ state ++ ", Transitions: \n"] ++ map show transitions ++ ["Previous class: " ++ previousClass ++ "\n"] 
- 
+    show TableRow{..} = unwords $ ["\nClass: " ++ tableClass ++ ", State: " ++ state ++ ", Transitions: \n"] ++ map show transitions ++ ["Previous class: " ++ previousClass ++ "\n"]
+
 instance Show Transition where
     show Transition{..} = "class: " ++ fromClass ++ " --" ++ show tSymbol ++ "-> " ++ tToState ++ ", class:" ++ toClass ++ "\n"
 

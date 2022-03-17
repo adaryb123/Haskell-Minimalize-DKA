@@ -2,8 +2,6 @@
 -- Author : Adam Rybanský
 -- Login : xryban00
 
-{-# LANGUAGE RecordWildCards #-}
-
 module Main where
 
 import System.IO  
