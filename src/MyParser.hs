@@ -1,3 +1,7 @@
+-- Project : FLP 2 DKA-2-MKA
+-- Author : Adam Rybanský
+-- Login : xryban00
+
 {-# LANGUAGE RecordWildCards #-}
 
 module MyParser (parseDKA) where
