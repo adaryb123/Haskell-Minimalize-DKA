@@ -21,14 +21,32 @@ type Err = Either String
 type DKAState = String
 type InputSymbol = Char
 
-globalDKA = DKA{states = ["1","5","8","11", "12"]
-,   alphabet = ['c','d','e','x']
-,   startState = "5"
-,   endStates = ["8"]
-,   rules = fromList [Rule{fromState = "5", symbol = 'd', toState = "8"},
-                       Rule{fromState = "8", symbol = 'x', toState = "1"},
-                       Rule{fromState = "8", symbol = 'c', toState = "5"},
-                       Rule{fromState = "11", symbol = 'c', toState = "12"}]}
+-- globalDKA = DKA{states = ["1","5","8","11", "12"]
+-- ,   alphabet = ['c','d','e','x']
+-- ,   startState = "5"
+-- ,   endStates = ["8"]
+-- ,   rules = fromList [Rule{fromState = "5", symbol = 'd', toState = "8"},
+--                        Rule{fromState = "8", symbol = 'x', toState = "1"},
+--                        Rule{fromState = "8", symbol = 'c', toState = "5"},
+--                        Rule{fromState = "11", symbol = 'c', toState = "12"}]}
+
+-- globalTableRow1 = TableRow{tableClass = "1", state = "1", transitions =
+--     [Transition{tFromState = "1", tSymbol = 'a', tToState = "7", toClass = "2"},
+--      Transition{tFromState = "7", tSymbol = 'a', tToState = "7", toClass = "2"},
+--      Transition{tFromState = "6", tSymbol = 'a', tToState = "1", toClass = "1"}]}
+
+-- globalTableRow2 = TableRow{tableClass = "1", state = "5", transitions =
+-- [Transition{tFromState = "5", tSymbol = 'b', tToState = "7", toClass = "2"},
+--     Transition{tFromState = "7", tSymbol = 'b', tToState = "7", toClass = "2"},
+--     Transition{tFromState = "10", tSymbol = 'a', tToState = "7", toClass = "2"}]}
+    
+-- globalTableRow3 = TableRow{tableClass = "1", state = "6", transitions =
+--     [Transition{tFromState = "5", tSymbol = 'b', tToState = "7", toClass = "2"},
+--         Transition{tFromState = "7", tSymbol = 'b', tToState = "7", toClass = "2"},
+--         Transition{tFromState = "10", tSymbol = 'a', tToState = "7", toClass = "2"}]}
+
+-- globalTable1 = [globalTableRow1,globalTableRow2]
+-- globalTable2 = [globalTableRow2,globalTableRow1]
 
 getStates :: DKA -> [DKAState]
 getStates (DKA x _ _ _ _) = x
@@ -124,24 +142,28 @@ removeUnreachableStates dka@DKA{..} =
 data TableRow = TableRow{tableClass :: String
     , state :: DKAState
     , transitions :: [Transition]
+    , previousClass :: String
 }
 
 data Transition = Transition{tFromState :: DKAState
     , tToState :: DKAState
     , tSymbol :: InputSymbol
     , toClass :: String
-} deriving (Ord, Eq)
+} deriving (Ord)
 
 type AlgorithmTable = [TableRow]
 
 getClass :: TableRow -> String
-getClass (TableRow x _ _) = x
+getClass (TableRow x _ _ _) = x
 
 getState :: TableRow -> DKAState
-getState (TableRow _ x _) = x
+getState (TableRow _ x _ _) = x
 
 getTransitions :: TableRow -> [Transition]
-getTransitions (TableRow _ _ x) = x
+getTransitions (TableRow _ _ x _) = x
+
+getPreviousClass :: TableRow -> String
+getPreviousClass (TableRow _ _ _ x) = x
 
 getTransitionFromState :: Transition -> DKAState
 getTransitionFromState (Transition x _ _ _) = x
@@ -157,14 +179,24 @@ getTransitionToClass (Transition _ _ _ x) = x
 
 
 instance Show TableRow where
-    show TableRow{..} = unwords $ ["\nClass: " ++ tableClass ++ ", State: " ++ state ++ ", Transitions: \n"] ++ map show transitions
+    show TableRow{..} = unwords $ ["\nClass: " ++ tableClass ++ ", State: " ++ state ++ ", Transitions: \n"] ++ map show transitions ++ ["Previous class: " ++ previousClass ++ "\n"] 
  
 instance Show Transition where
     show Transition{..} = tFromState ++ "--" ++ show tSymbol ++ "-> " ++ tToState ++ ", class:" ++ toClass ++ "\n"
     
--- instance Eq Rule where
---         (Rule x1 y1 z1) == (Rule x2 y2 z2) = x1 == x2 && y1 == y2 && z1 == z2
 
+-- instance Eq AlgorithmTable where
+--     (AlgorithmTable []) == (AlgorithmTable []) = True
+--     (AlgorithmTable rows1) == (AlgorithmTable []) = False
+--     (AlgorithmTable []) == (AlgorithmTable rows2) = False
+--     (AlgorithmTable row1:rows1) == (AlgorithmTable row2:rows2) = row1 == row2 && rows1 == rows2
+
+
+instance Eq TableRow where
+    (TableRow x1 y1 w1 z1) == (TableRow x2 y2 w2 z2) = x1 == x2 && y1 == y2 && w1 == w2 && z1 == z2
+
+instance Eq Transition where
+    (Transition x1 y1 w1 z1) == (Transition x2 y2 w2 z2) = x1 == x2 && y1 == y2 && w1 == w2 && z1 == z2
 
 convertDKAtoTable :: DKA -> AlgorithmTable
 convertDKAtoTable dka@DKA{..} = createTable (getRules dka) (getStates dka) (getEndingStates dka)
@@ -175,14 +207,16 @@ createTable rules' (state':states') endingStates' = (createTableRow rules' state
 
 createTableRow :: Set Rule -> DKAState -> [DKAState] -> TableRow
 createTableRow rules' state' endingStates' = 
-    TableRow{tableClass = determineClass state' endingStates'
+    TableRow{tableClass = calculatedClass
     ,   state = state'
-    ,   transitions = extractTransitions rules' state' (determineClass state' endingStates')}
+    ,   transitions = extractTransitions rules' state' calculatedClass
+    ,   previousClass = calculatedClass}
+    where calculatedClass = determineClass state' endingStates'
 
 determineClass :: DKAState -> [DKAState] -> String
 determineClass state' endingStates' 
-    | state' `elem` endingStates' = "1"
-    | otherwise = "2"
+    | state' `elem` endingStates' = "2"
+    | otherwise = "1"
 
 extractTransitions :: Set Rule -> DKAState -> String -> [Transition]
 extractTransitions rules' state' class' = map convertRuleToTransition (filter (\someRule -> getRuleFromState someRule == state') ( toList rules'))
@@ -195,20 +229,76 @@ convertRuleToTransition rule@Rule{..} =
                toClass = "0"}
 
 
+
+
 setTransitionsAccordingToClass :: [TableRow]  -> [TableRow] -> [TableRow]
 setTransitionsAccordingToClass [] _ = []
 setTransitionsAccordingToClass (row':rows') table' = [setTransitions row' table'] ++ setTransitionsAccordingToClass rows' table'
 
-getTableRowClass :: [TableRow] -> DKAState -> String
-getTableRowClass [] _ = "No class found"
-getTableRowClass (row':rows') state' 
+getTableRowClassFromTable :: [TableRow] -> DKAState -> String
+getTableRowClassFromTable [] _ = "No class found"
+getTableRowClassFromTable (row':rows') state' 
     | getState row' == state' = getClass row'
-    | otherwise = getTableRowClass rows' state' 
+    | otherwise = getTableRowClassFromTable rows' state' 
 
 setTransitions :: TableRow -> AlgorithmTable -> TableRow
 setTransitions row' table' = row'{transitions = changedTransitions}
     where changedTransitions = map helper (getTransitions row')
-          helper x = setClass x (getTableRowClass table' (getTransitionToState x))
+          helper x = setClass x (getTableRowClassFromTable table' (getTransitionToState x))
 
 setClass :: Transition -> String -> Transition
 setClass transition' class' = transition'{toClass = class'}
+
+-- findEqualRowClassState :: TableRow -> AlgorithmTable -> (Bool,String)
+
+
+
+
+findHighestClass :: [TableRow] -> String
+findHighestClass [] = "1"
+findHighestClass (row':rows') = max string1 string2
+    where num1 = read string1 :: Integer
+          num2 = read string2 :: Integer
+          string1 = getClass row'
+          string2 = findHighestClass rows'
+
+transitionClassesEqual :: [Transition] -> [Transition] -> Bool
+transitionClassesEqual [] [] = True
+transitionClassesEqual [] _ = False
+transitionClassesEqual _ [] = True
+transitionClassesEqual (tran1:trans1) (tran2:trans2) = getTransitionToClass tran1 == getTransitionToClass tran2 && transitionClassesEqual trans1 trans2
+
+rowsBelongToSameClass :: TableRow -> TableRow -> Bool
+rowsBelongToSameClass row1' row2' = getPreviousClass row1' == getPreviousClass row2' && transitionClassesEqual (getTransitions row1') (getTransitions row2')
+
+calculateTableClass :: TableRow -> [TableRow] -> [TableRow] -> String
+calculateTableClass row' [] newTable' =  show ((read (findHighestClass newTable') :: Integer)  + 1)
+calculateTableClass row' (newRow':newRows') newTable'
+    | rowsBelongToSameClass row' newRow' = getClass newRow'
+    | otherwise = calculateTableClass row' newRows' newTable'
+
+
+formTableWithNewClasses :: [TableRow] -> [TableRow] -> [TableRow]
+formTableWithNewClasses [] _ = []
+formTableWithNewClasses (oldRow':oldRows') [] = [newRow] ++ formTableWithNewClasses oldRows' [newRow]
+        where newRow = TableRow{tableClass = "1", state = getState oldRow', transitions = getTransitions oldRow', previousClass = getPreviousClass oldRow'}
+formTableWithNewClasses (oldRow':oldRows') newTable' = [newRow] ++ formTableWithNewClasses oldRows' (newTable' ++ [newRow])
+        where newRow = TableRow{tableClass = (calculateTableClass oldRow' newTable' newTable'), state = getState oldRow', transitions = getTransitions oldRow', previousClass = getPreviousClass oldRow'}
+
+   
+
+
+
+findRowByState :: [TableRow] -> DKAState -> TableRow
+findRowByState [] _ = TableRow{tableClass = "none", state = "none", transitions = [], previousClass = "none"}
+findRowByState (row':rows') state'
+    | getState row' == state' = row'
+    | otherwise = findRowByState rows' state'
+
+
+setPreviousClass :: TableRow -> String -> TableRow
+setPreviousClass row' class' = row'{previousClass = class'}
+
+setPreviousClasses :: [TableRow] -> [TableRow] -> [TableRow]
+setPreviousClasses oldTable' newTable' = map helper newTable'
+    where helper x = setPreviousClass x (getClass (findRowByState oldTable' (getState x)))

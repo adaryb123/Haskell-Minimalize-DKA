@@ -33,4 +33,4 @@ printTable :: AlgorithmTable -> IO ()
 printTable = putStr . show
 
 modifyTableTransitionsClasses :: AlgorithmTable -> AlgorithmTable
-modifyTableTransitionsClasses table' = setTransitionsAccordingToClass table' table'
+modifyTableTransitionsClasses table' = setPreviousClasses table' (formTableWithNewClasses (setTransitionsAccordingToClass table' table') [])
