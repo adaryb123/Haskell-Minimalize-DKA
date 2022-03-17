@@ -55,10 +55,12 @@ getRuleToState (Rule _ _ x) = x
 
 --printing functions
 instance Show DKA where
-    show DKA{..} = unwords $ ["Printing DKA:\nStates: " ++ intercalate "," states ++ "\nAlphabet: " ++ alphabet ++ "\nStarting state: " ++ startState ++ "\nEnding states: " ++ intercalate "," endStates ++"\nRules:\n"] ++ map show (toList rules)
+    show DKA{..} = unwords $ [intercalate "," states ++ "\n" ++ alphabet ++ "\n" ++ startState ++ "\n" ++ intercalate "," endStates] ++ map show (toList rules)
+    --show DKA{..} = unwords $ ["Printing DKA:\nStates: " ++ intercalate "," states ++ "\nAlphabet: " ++ alphabet ++ "\nStarting state: " ++ startState ++ "\nEnding states: " ++ intercalate "," endStates ++"\nRules:\n"] ++ map show (toList rules)
  
 instance Show Rule where
-    show Rule{..} = fromState ++ "--" ++ show symbol ++ "-> " ++ toState ++ "\n"
+    show Rule{..} = "\n" ++ fromState ++ "," ++ [symbol] ++ "," ++ toState
+    -- show Rule{..} = fromState ++ "--" ++ show symbol ++ "-> " ++ toState ++ "\n"
      
 -- comparing function
 instance Eq Rule where

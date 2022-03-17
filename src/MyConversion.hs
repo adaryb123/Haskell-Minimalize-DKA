@@ -10,6 +10,8 @@ import Data.List (intercalate, dropWhileEnd, unfoldr, (\\))
 import Data.Set (Set, toList, fromList)
 import MyData
 
+-- /////////////////////////////////////////////////////////////////////////////////////
+--this block of functions adds the SINK state to DKA (addSINKState is the main function)
 
 ruleExistsByStartAndSymbol :: Set Rule -> DKAState -> InputSymbol -> Bool
 ruleExistsByStartAndSymbol rules' state' symbol' = any (\someRule -> getRuleFromState someRule == state' && getRuleSymbol someRule == symbol') rules'
@@ -33,7 +35,8 @@ sinkRules :: [DKAState] -> [InputSymbol] -> Set Rule -> [Rule]
 sinkRules [] _ _ = []
 sinkRules (state':states') symbols' rules' = sinkRulesForState state' symbols' rules' ++ sinkRules states' symbols' rules'
 
-
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--this block of functions removes the unreachable states from the DKA (removeUnreachableStates is the main function)
 findReachableStatesFromStates :: Set Rule -> [DKAState] -> [DKAState]
 findReachableStatesFromStates rules' fromStates' =  map getRuleToState (filter (\someRule -> getRuleFromState someRule `elem` fromStates' && getRuleToState someRule `notElem` fromStates') (toList rules'))
 
@@ -43,7 +46,6 @@ findReachableStates rules' foundStates'
     | null newStates = foundStates'
     | otherwise = findReachableStates rules' (newStates ++ foundStates')
     where newStates = findReachableStatesFromStates rules' foundStates'
-
 
 findUnreachableRules :: Set Rule -> [DKAState] -> [Rule]
 findUnreachableRules rules' unreachableStates' = filter (\someRule -> getRuleFromState someRule `elem` unreachableStates') ( toList rules')
@@ -57,13 +59,11 @@ removeUnreachableStates dka@DKA{..} =
     ,   rules = fromList ((toList (getRules dka)) \\ (findUnreachableRules (getRules dka) unreachableStates)) }
     where unreachableStates = getStates dka \\ findReachableStates (getRules dka) [getStartingState dka]
 
-
-
-
+-- ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--this block of functions converts DKA to AlgorithmTable datatype, which is better required for the minimalization algorithm (createTable is the main function)
 convertDKAtoTable :: DKA -> AlgorithmTable
 convertDKAtoTable dka@DKA{..} = setTransitionsAccordingToClass table table
         where table = createFirstRowForStartingState (getRules dka) (getStartingState dka) (getEndingStates dka) : createTable (getRules dka) (getStates dka) (getEndingStates dka)
-
 
 createFirstRowForStartingState ::  Set Rule -> DKAState -> [DKAState] -> TableRow
 createFirstRowForStartingState rules' startingState' endingStates' = createTableRow rules' startingState' endingStates'
@@ -95,10 +95,9 @@ convertRuleToTransition rule@Rule{..} =
                 tSymbol = getRuleSymbol rule,
                 toClass = "0"}
 
-
-
-
-
+-- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--the minimalisation algorithm consists of 3 steps:
+--first step is adjusting the classes of the states in transitions in each row (setTransitions is the main function)
 
 setTransitionsAccordingToClass :: [TableRow]  -> [TableRow] -> [TableRow]
 setTransitionsAccordingToClass [] _ = []
@@ -118,10 +117,9 @@ setTransitions row' table' = row'{transitions = changedTransitions}
 setClass :: Transition -> String -> String -> Transition
 setClass transition' fromClass' toClass' = transition'{fromClass = fromClass', toClass = toClass'}
 
-
-
-
-
+-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+--the second step is creating new table object based on the previous one, and further dividing the classes by the classes in their transitions.
+-- (formTableWithNewClasses is the main function) 
 
 findHighestClass :: [TableRow] -> String
 findHighestClass [] = "0"
@@ -144,7 +142,6 @@ calculateTableClass row' (newRow':newRows') newTable'
     | rowsBelongToSameClass row' newRow' = getClass newRow'
     | otherwise = calculateTableClass row' newRows' newTable'
 
-
 formTableWithNewClasses :: [TableRow] -> [TableRow] -> [TableRow]
 formTableWithNewClasses [] _ = []
 formTableWithNewClasses (oldRow':oldRows') [] = [newRow] ++ formTableWithNewClasses oldRows' [newRow]
@@ -152,18 +149,15 @@ formTableWithNewClasses (oldRow':oldRows') [] = [newRow] ++ formTableWithNewClas
 formTableWithNewClasses (oldRow':oldRows') newTable' = [newRow] ++ formTableWithNewClasses oldRows' (newTable' ++ [newRow])
         where newRow = TableRow{tableClass = (calculateTableClass oldRow' newTable' newTable'), state = getState oldRow', transitions = getTransitions oldRow', previousClass = getPreviousClass oldRow'}
 
-
-
-    
-
-
+-- ///////////////////////////////////////////////////////////////////////////
+-- the last step is setting the previous class variable for each current class
+-- (setPreviousClasses is the main function)
 
 findRowByState :: [TableRow] -> DKAState -> TableRow
 findRowByState [] _ = TableRow{tableClass = "none", state = "none", transitions = [], previousClass = "none"}
 findRowByState (row':rows') state'
     | getState row' == state' = row'
     | otherwise = findRowByState rows' state'
-
 
 setPreviousClass :: TableRow -> String -> TableRow
 setPreviousClass row' class' = row'{previousClass = class'}
@@ -172,15 +166,13 @@ setPreviousClasses :: [TableRow] -> [TableRow] -> [TableRow]
 setPreviousClasses oldTable' newTable' = map helper newTable'
     where helper x = setPreviousClass x (getClass (findRowByState oldTable' (getState x)))
 
-
-
-
-
+-- ///////////////////////////////////////////////////////////////////////////////////////////////
+-- we run the algorithm 1 step at a time, until the current table and the previous table are equal
+-- (that means the classes cannot further be divided) 
 
 perform1Step :: AlgorithmTable -> AlgorithmTable
 perform1Step table' = setTransitionsAccordingToClass halfResult halfResult
         where halfResult = setPreviousClasses table' (formTableWithNewClasses table' [])
-    
 
 runAlgorithm :: AlgorithmTable -> AlgorithmTable
 runAlgorithm oldtable 
@@ -188,13 +180,13 @@ runAlgorithm oldtable
     | otherwise = runAlgorithm newtable
     where newtable = perform1Step oldtable
 
-
-
+-- ///////////////////////////////////////////////////////////////////////
+-- these functions convert the final table to DKA, using classes as states
+-- (convertTabletoDKA is the main function)
 
 getClassesFromTable :: AlgorithmTable -> [String]
 getClassesFromTable [] = []
 getClassesFromTable (row':rows') = getClass row' : getClassesFromTable rows'
-
 
 getClassesThatContainStates :: AlgorithmTable -> [DKAState] -> [String]
 getClassesThatContainStates [] _ = []
@@ -202,14 +194,11 @@ getClassesThatContainStates (row':rows') states'
     | getState row' `elem` states' = getClass row' : (getClassesThatContainStates rows' states')
     | otherwise = getClassesThatContainStates rows' states'
 
-
-
 convertTransitionsToRules :: [Transition] -> [Rule]
 convertTransitionsToRules [] = []
 convertTransitionsToRules (tran':trans') = Rule{fromState = getTransitionFromClass tran',
                                                 symbol = getTransitionSymbol tran',
                                                 toState = getTransitionToClass tran'} : convertTransitionsToRules trans'
-
 
 convertAllTransitionsInTable :: AlgorithmTable -> [Rule]
 convertAllTransitionsInTable [] = []
@@ -224,10 +213,8 @@ convertTableToDKA  table inputDKA@DKA{..} =
     ,   endStates = toList (fromList (getClassesThatContainStates table (getEndingStates inputDKA)))
     ,   rules = fromList (convertAllTransitionsInTable table)}
                     
-
-
-
-
+-- ////////////////////////////////////////////////
+--function calling the entire minimalization process
 
 convertToMKA :: DKA -> DKA
-convertToMKA dka@DKA{..} = removeUnreachableStates (addSINKState dka)
+convertToMKA dka@DKA{..} = ( convertTableToDKA (runAlgorithm ( convertDKAtoTable ( removeUnreachableStates (addSINKState dka)))) dka)

@@ -19,7 +19,8 @@ import Text.Parsec.String (Parser)
 
 import MyData
 
-
+--thsese functions parse the input file and store its data into DKA data type.
+--parseDKA is the main fuction
 parseDKA :: String -> Err DKA
 parseDKA = validate <=< left show . parse parser "" 
 
@@ -74,6 +75,7 @@ allDifferent list = case list of
     []      -> True
     (x:xs)  -> x `notElem` xs && allDifferent xs
 
+-- validates if DKA is in correct format
 validate :: DKA -> Err DKA
 validate dka@DKA{..} =
   if isValid then Right dka else Left "ERROR: Input file is in invalid format"
