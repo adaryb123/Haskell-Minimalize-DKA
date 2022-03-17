@@ -21,6 +21,7 @@ type Err = Either String
 type DKAState = String
 type InputSymbol = Char
 
+
 getStates :: DKA -> [DKAState]
 getStates (DKA x _ _ _ _) = x
 
@@ -167,7 +168,11 @@ instance Eq Transition where
 
 convertDKAtoTable :: DKA -> AlgorithmTable
 convertDKAtoTable dka@DKA{..} = setTransitionsAccordingToClass table table
-        where table = createTable (getRules dka) (getStates dka) (getEndingStates dka)
+        where table = createFirstRowForStartingState (getRules dka) (getStartingState dka) (getEndingStates dka) : createTable (getRules dka) (getStates dka) (getEndingStates dka)
+
+
+createFirstRowForStartingState ::  Set Rule -> DKAState -> [DKAState] -> TableRow
+createFirstRowForStartingState rules' startingState' endingStates' = createTableRow rules' startingState' endingStates'
 
 createTable :: Set Rule -> [DKAState] -> [DKAState] -> AlgorithmTable
 createTable _ [] _ = []
