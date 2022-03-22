@@ -6,8 +6,8 @@
 
 module MyData where
 
-import Data.List (intercalate, dropWhileEnd, unfoldr, (\\))
-import Data.Set (Set, toList, fromList)
+import Data.List (intercalate)
+import Data.Set (Set, toList)
 
 -- deterministic finite-state automata
 data DKA = DKA {states :: [DKAState],
@@ -55,7 +55,7 @@ getRuleToState (Rule _ _ x) = x
 
 --printing functions
 instance Show DKA where
-    show DKA{..} = unwords $ (intercalate "," states ++ "\n" ++ alphabet ++ "\n" ++ startState ++ "\n" ++ intercalate "," endStates) : map show (toList rules)
+    show DKA{..} = unwords $ (intercalate "," states ++ "\n" ++ alphabet ++ "\n" ++ startState ++ "\n" ++ intercalate "," endStates) : map show (toList rules) ++ ["\n"]
     --show DKA{..} = unwords $ ["Printing DKA:\nStates: " ++ intercalate "," states ++ "\nAlphabet: " ++ alphabet ++ "\nStarting state: " ++ startState ++ "\nEnding states: " ++ intercalate "," endStates ++"\nRules:\n"] ++ map show (toList rules)
 
 instance Show Rule where

@@ -6,7 +6,7 @@
 
 module MyConversion where
 
-import Data.List (intercalate, dropWhileEnd, unfoldr, (\\))
+import Data.List ((\\))
 import Data.Set (Set, toList, fromList)
 import MyData
 
@@ -14,7 +14,7 @@ import MyData
 --this block of functions adds the SINK state to DKA (addSINKState is the main function)
 
 ruleExistsByStartAndSymbol :: Set Rule -> DKAState -> InputSymbol -> Bool
-ruleExistsByStartAndSymbol rules' state' symbol' = any (\someRule -> getRuleFromState someRule == state' && getRuleSymbol someRule == symbol') rules'
+ruleExistsByStartAndSymbol rules' state' symbol' = any (\someRule -> getRuleFromState someRule == state' && getRuleSymbol someRule == symbol') (toList rules')
 
 addSINKState :: DKA -> DKA
 addSINKState dka@DKA{..} =
@@ -76,7 +76,7 @@ createTableRow :: Set Rule -> DKAState -> [DKAState] -> TableRow
 createTableRow rules' state' endingStates' =
     TableRow{tableClass = calculatedClass
     ,   state = state'
-    ,   transitions = extractTransitions rules' state' calculatedClass
+    ,   transitions = extractTransitions rules' state'
     ,   previousClass = calculatedClass}
     where calculatedClass = determineClass state' endingStates'
 
@@ -85,8 +85,8 @@ determineClass state' endingStates'
     | state' `elem` endingStates' = "2"
     | otherwise = "1"
 
-extractTransitions :: Set Rule -> DKAState -> String -> [Transition]
-extractTransitions rules' state' class' = map convertRuleToTransition (filter (\someRule -> getRuleFromState someRule == state') ( toList rules'))
+extractTransitions :: Set Rule -> DKAState -> [Transition]
+extractTransitions rules' state' = map convertRuleToTransition (filter (\someRule -> getRuleFromState someRule == state') ( toList rules'))
 
 convertRuleToTransition :: Rule -> Transition
 convertRuleToTransition rule@Rule{..} =
@@ -137,7 +137,7 @@ rowsBelongToSameClass :: TableRow -> TableRow -> Bool
 rowsBelongToSameClass row1' row2' = getPreviousClass row1' == getPreviousClass row2' && transitionClassesEqual (getTransitions row1') (getTransitions row2')
 
 calculateTableClass :: TableRow -> [TableRow] -> [TableRow] -> String
-calculateTableClass row' [] newTable' =  show ((read (findHighestClass newTable') :: Integer)  + 1)
+calculateTableClass _ [] newTable' =  show ((read (findHighestClass newTable') :: Integer)  + 1)
 calculateTableClass row' (newRow':newRows') newTable'
     | rowsBelongToSameClass row' newRow' = getClass newRow'
     | otherwise = calculateTableClass row' newRows' newTable'

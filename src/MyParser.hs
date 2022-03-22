@@ -6,15 +6,12 @@
 
 module MyParser (parseDKA) where
 
-import System.IO  
-import Data.Typeable
-
-import Control.Applicative ((<$>), (<*>), (<*), (<|>))
+import Control.Applicative ((<$>), (<*>), (<*))
 import Control.Arrow (left)
 import Control.Monad ((<=<))
 import Data.Set (Set, fromList, toList)
-import Text.Parsec (char, count, endBy, eof, many1, newline, oneOf, parse,
-    satisfy, sepBy, sepBy1, string, alphaNum)
+import Text.Parsec (char, endBy, eof, many1, newline, parse,
+    satisfy, sepBy1, alphaNum)
 import Text.Parsec.String (Parser)
 
 import MyData
@@ -82,9 +79,9 @@ validate dka@DKA{..} =
   where
     isValid = startState `elem` states
            && subList endStates states
-           && all ((`elem` states) . fromState) rules
-           && all ((`elem` alphabet) . symbol) rules
-           && all ((`elem` states) . toState) rules
+           && all ((`elem` states) . fromState) (toList rules)
+           && all ((`elem` alphabet) . symbol) (toList rules)
+           && all ((`elem` states) . toState) (toList rules)
            && allDifferent states
            && allDifferent endStates
            && allDifferent alphabet
